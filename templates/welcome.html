@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <title>Wankel</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/materialize.css') }}" media="screen,projection"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+/* label focus color */
+.input-field input:focus + label {
+    color: #f44336 !important;
+}
+ /* label underline focus color */
+.row .input-field input:focus {
+    border-bottom: 1px solid #f44336 !important;
+    box-shadow: 0 1px 0 0 #f44336 !important
+}
+</style>
+    </head>
+    <body class="black white-text valign-wrapper">
+        <div class="container">
+
+            <p style="font-size: 40; margin: 0; text-align: center" class="red-text">welcome to</p>
+            <p style="font-size: 120; margin: 0 0 0.25em 0; text-align: center">wankel</p>
+
+            <div class="row">
+                <a class="waves-effect waves-light btn-flat col s4 offset-s2 m2 offset-m4 center-align white-text" id="signup_reveal">Sign Up</a>
+                <a class="waves-effect waves-light btn-flat col s4 offset-s0 m2 center-align white-text" id="login_reveal">Log In</a>
+            </div>
+
+            <div id="input_div" style="display: none">
+                <div class="row">
+                    <div class="input-field col l4 s8 offset-l4 offset-s2">
+                        <input type="text" id="username" class="white-text">
+                        <label for="username" >username</label>
+                    </div>
+                    <div class="input-field col l4 s8 offset-l4 offset-s2">
+                        <input type="password" id="password" class="white-text">
+                        <label for="password">password</label>
+                    </div>
+                    <a class="waves-effect waves-light btn red col l4 offset-l4 s8 offset-s2" id="submit">submit</a>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript" src="{{ url_for('static', filename='welcome.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/materialize.js') }}"></script>
+    </body>
+</html>
+
