@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>Wankel</title>
+        <title>wankel</title>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/materialize.css') }}" media="screen,projection"/>
@@ -15,6 +15,10 @@
     border-bottom: 1px solid #f44336 !important;
     box-shadow: 0 1px 0 0 #f44336 !important
 }
+
+.btn-large:hover {
+    background-color: inherit !important;
+}
 </style>
     </head>
     <body class="black white-text valign-wrapper">
@@ -24,8 +28,8 @@
             <p style="font-size: 120; margin: 0 0 0.25em 0; text-align: center">wankel</p>
 
             <div class="row">
-                <a class="waves-effect waves-light btn-flat col s4 offset-s2 m2 offset-m4 center-align white-text" id="signup_reveal">Sign Up</a>
-                <a class="waves-effect waves-light btn-flat col s4 offset-s0 m2 center-align white-text" id="login_reveal">Log In</a>
+                <a class="waves-effect waves-light btn-flat col s4 offset-s2 m2 offset-m4 center-align red-text" id="signup_reveal">Sign Up</a>
+                <a class="waves-effect waves-light btn-flat col s4 offset-s0 m2 center-align red-text" id="login_reveal">Log In</a>
             </div>
 
             <div id="input_div" style="display: none">

@@ -1,7 +1,55 @@
 <html>
     <head>
-        <title>Wankel</title>
+        <title>wankel</title>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script type="text/javascript">
+google.charts.load('current', {'packages':['timeline']});
+google.charts.setOnLoadCallback(drawChart);
+function drawChart() {
+    var container = document.getElementById('timeline');
+    var chart = new google.visualization.Timeline(container);
+    var dataTable = new google.visualization.DataTable();
+
+    dataTable.addColumn({ type: 'string', id: 'person' });
+    dataTable.addColumn({ type: 'string', id: 'dummy bar label' });
+    dataTable.addColumn({ type: 'string', id: 'style', role: 'style' });
+    dataTable.addColumn({ type: 'string', role: 'tooltip', 'p': {'html': true}});
+    dataTable.addColumn({ type: 'date', id: 'start' });
+    dataTable.addColumn({ type: 'date', id: 'end' });
+    dataTable.addRows([
+        {% for ev in log_events %}
+        [ {{ ev | safe }} ],
+        {% endfor %}
+        ]);
+
+    var dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    var dayEnd = new Date(dayStart)
+    dayEnd.setDate(dayEnd.getDate() + 1)
+
+    var options = {
+        backgroundColor: '#212121',
+        colors: ['#f44336'],
+        height: 100,
+        tooltip: {
+            isHtml: true
+        },
+        hAxis: {
+            minValue: dayStart,
+            maxValue: dayEnd,
+            format: 'HH:mm'
+        },
+        timeline: {
+            rowLabelStyle: {
+                color: 'white'
+            }
+        }
+    };
+
+    chart.draw(dataTable, options);
+}
+        </script>
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/materialize.css') }}" media="screen,projection"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -33,6 +81,19 @@
     opacity: 50%;
 }
 
+.row {
+    margin-bottom: inherit !important;
+}
+
+.collection {
+    margin-bottom: inherit !important;
+    border: 1px solid #f44336 !important;
+}
+
+.timepicker-close {
+    color: #f44336 !important;
+}
+
 textarea.materialize-textarea:focus {
     border-bottom: 1px solid #f44336 !important;
     box-shadow: 0 1px 0 0 #f44336 !important;
@@ -42,20 +103,48 @@ textarea.materialize-textarea:focus {
     color: #f44336 !important;
 }
 
+.collection-item {
+    background-color: black;
+    border-bottom: 1px solid #f44336 !important;
+}
 
+.collection .collection-item:last-child {
+    border-bottom: none !important;
+}
+
+.btn-large:hover {
+    background-color: inherit !important;
+}
+
+#timeline > div > div:nth-child(1) > div > svg > g:nth-child(3) > text {
+    fill: white !important;
+}
+
+#timeline > div > div:nth-child(1) > div > svg > g:nth-child(2) > rect {
+    display: none !important;
+}
+
+.tooltip {
+    background-color: black;
+    color: white;
+    padding: 1em;
+    display: inline-block;
+    white-space: nowrap;
+}
 </style>
     </head>
     <body class="black white-text">
         <div class="container">
 
             <div class="row">
-                <h2 class="center-align">hey there <span class="red-text">{{ current_user.username }}</span></h2>
+                <h2 class="center-align red-text">hey there <span class="white-text">{{ current_user.username }}</span></h2>
             </div>
 
             <div class="row">
                 <div class="col s12 l6">
                     <div class="card grey darken-4">
                         <div class="card-content">
+                            <span class="card-title">submit an event</span>
                             <div class="row">
                                 <div class="input-field col s6">
                                     <input type="text" id="start_time" class="timepicker white-text">
@@ -66,13 +155,13 @@ textarea.materialize-textarea:focus {
                                     <label for="end_time">end time</label>
                                 </div>
                             </div>
-                            <div class="row">
-                                <div class="input-field col s12 l9">
+                            <div class="row valign-wrapper">
+                                <div class="input-field col s9 m9 l9">
                                     <textarea id="description" class="materialize-textarea white-text"></textarea>
                                     <label for="description">description</label>
                                 </div>
-                                <div class="input-field col s12 l3">
-                                    <a class="waves-effect waves-light btn-large red col s12" id="submit"><i class="material-icons">send</i></a>
+                                <div class="input-field col s3 m3 l3">
+                                    <a class="waves-effect waves-light btn-large btn-flat red-text col s12" id="submit"><i class="material-icons">send</i></a>
                                 </div>
                             </div>
                         </div>
@@ -81,21 +170,80 @@ textarea.materialize-textarea:focus {
                 <div class="col s12 l6">
                     <div class="card grey darken-4">
                         <div class="card-content">
-                            <div class="row">
-                                <div class="input-field col s4">
-                                    <input type="text" id="start_time" class="timepicker white-text">
-                                    <label for="start_time">start time</label>
-                                </div>
-                                <div class="input-field col s4">
-                                    <input type="text" id="end_time" class="timepicker white-text">
-                                    <label for="end_time">end time</label>
-                                </div>
-                                <a class="waves-effect waves-light btn red col s4" id="submit">submit</a>
-                            </div>
+                            <span class="card-title">recent events</span>
 
+                            {% if events|length %}
+                            <table class="highlight">
+                                <thead>
+                                    <tr class="red-text">
+                                        <th>start</th>
+                                        <th>duration</th>
+                                        <th>end</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for event in events %}
+                                    <tr>
+                                        <td> {{ event.get_start_time() }} </td>
+                                        <td> {{ event.get_duration()   }} </td>
+                                        <td> {{ event.get_end_time()   }} </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            {% else %}
+                            <p style="padding-top: 1em">no recent events</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-action">
+                            <a href="/events/{{ current_user.username }}" class="red-text">more</a>
                         </div>
                     </div>
                  </div>
+            </div>
+            <div class="row">
+                <div class="col s12">
+                    <div class="card grey darken-4">
+                        <div class="card-content">
+                            <span class="card-title">your activity today</span>
+                            {% if log_events|length %}
+                            <div class="row"></div>
+                            <div class="row">
+                                <div id="timeline" class="col s12" style="height: 70px"></div>
+                            </div>
+                            {% else %}
+                            <p style="padding-top: 1em">no recent events</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12">
+                    <div class="card grey darken-4">
+                        <div class="card-content">
+                            <span class="card-title">your groups</span>
+                            {% if groups|length %}
+                            <div class="row">
+                                <div class="col s12">
+                                    <div class="collection">
+                                        {% for group in groups %}
+                                        <a href="/group/{{group.id}}" class="collection-item black red-text">{{group.name}}</a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <p style="padding-top: 1em">no groups</p>
+                            {% endif %}
+                        </div>
+                        <div class="card-action">
+                            <a href="/groups" class="red-text">find groups</a>
+                        </div>
+
+                    </div>
+                </div>
             </div>
         </div>
         <script type="text/javascript" src="{{ url_for('static', filename='index.js') }}"></script>
