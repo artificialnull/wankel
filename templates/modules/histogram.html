@@ -1,0 +1,114 @@
+<div class="card grey darken-4">
+    <div class="card-content">
+        <span class="card-title">histogram</span>
+        <div class="row" style="margin-bottom: 0px !important">
+            <div id="histogram" class="col s12"
+                                   style="width: 100%; min-height: {{ 41+50 }}px"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+#histogram > div > div:nth-child(1) > div > svg > g:nth-child(3) > text {
+    fill: white !important;
+}
+
+#histogram > div > div:nth-child(1) > div > svg > g:nth-child(2) > rect {
+    display: none !important;
+}
+
+.tooltip {
+    background-color: black;
+    color: white;
+    padding: 1em;
+    display: inline-block;
+}
+
+</style>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+google.charts.load('current', {'packages':['timeline']});
+google.charts.setOnLoadCallback(drawHistogram);
+function drawHistogram() {
+    var container = document.getElementById('histogram');
+    var chart = new google.visualization.Timeline(container);
+    var dataTable = new google.visualization.DataTable();
+
+    var dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    var dayEnd = new Date(dayStart)
+    dayEnd.setDate(dayEnd.getDate() + 1)
+
+    var events = [];
+    {% for ev in ev_js %}
+    events.push({
+        start: {{ev['start_js']}},
+        end:   {{ev['end_js']  }}
+    });
+    {% endfor %}
+
+    var dayLength = 60*24;
+    var dh = new Array(dayLength).fill(0);
+    for (var i = 0; i < events.length; i++) {
+        var ev = events[i];
+        for (var t = ev.start; t < ev.end; t.setMinutes(t.getMinutes() + 1)) {
+            dh[t.getHours() * 60 + t.getMinutes()]++;
+        }
+    }
+    var hourCounts = new Array(24).fill(0);
+    for (var i = 0; i < dayLength; i++) {
+        hourCounts[Math.floor(i/60)] += dh[i];
+    }
+    console.log(hourCounts);
+
+    var rows = [];
+    for (var i = 0; i < hourCounts.length; i++) {
+        var curStart = new Date(dayStart);
+        curStart.setHours(i);
+        var curEnd = new Date(curStart);
+        curEnd.setHours(curEnd.getHours() + 1);
+        var commonality = (hourCounts[i] / Math.max(...hourCounts));
+        var frequency = hourCounts[i] / (hourCounts.reduce((a, b) => a + b, 0));
+        rows.push(['histogram', '', 'opacity: '.concat(commonality.toString()),
+            '<div class="tooltip"><p style="white-space: nowrap"><b>frequency: '.concat(
+                (Math.round(frequency * 10000)/10000).toString(),
+                '</b></p></div>'
+            ), curStart, curEnd]);
+    }
+
+
+    dataTable.addColumn({ type: 'string', id: 'person' });
+    dataTable.addColumn({ type: 'string', id: 'dummy bar label' });
+    dataTable.addColumn({ type: 'string', id: 'style', role: 'style' });
+    dataTable.addColumn({ type: 'string', role: 'tooltip', 'p': {'html': true}});
+    dataTable.addColumn({ type: 'date', id: 'start' });
+    dataTable.addColumn({ type: 'date', id: 'end' });
+    dataTable.addRows(rows);
+
+
+    var options = {
+        backgroundColor: '#212121',
+        colors: ['#f44336'],
+        tooltip: {
+            isHtml: true
+        },
+        hAxis: {
+            minValue: dayStart,
+            maxValue: dayEnd,
+            format: 'HH:mm'
+        },
+        timeline: {
+            showRowLabels: false,
+            rowLabelStyle: {
+                color: 'white'
+            }
+        }
+    };
+
+    chart.draw(dataTable, options);
+}
+$(window).resize(function(){
+  drawHistogram();
+});
+</script>
+

@@ -12,7 +12,7 @@ $('#submit').click(function () {
         success: function (data) {
             console.log(data);
             if (data.success) {
-                window.location.href = "http://kamat.xyz:5000/groups";
+                window.location.href = window.location.origin + '/';
             }
         },
         dataType: "json"

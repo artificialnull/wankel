@@ -1,0 +1,94 @@
+<div class="card grey darken-4">
+    <div class="card-content">
+        <span class="card-title">activity log</span>
+        <div class="row" style="margin-bottom: 0px !important">
+            <div id="activity-log" class="col s12"
+                                   style="width: 100%; min-height: {{ (ev_js | unique(attribute='username') | list | length)*41+50 }}px"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+#activity-log > div > div:nth-child(1) > div > svg > g:nth-child(3) > text {
+    fill: white !important;
+}
+
+#activity-log > div > div:nth-child(1) > div > svg > g:nth-child(2) > rect {
+    display: none !important;
+}
+
+.tooltip {
+    background-color: black;
+    color: white;
+    padding: 1em;
+    display: inline-block;
+}
+
+</style>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+google.charts.load('current', {'packages':['timeline']});
+google.charts.setOnLoadCallback(drawActivityLog);
+function drawActivityLog() {
+    var container = document.getElementById('activity-log');
+    var chart = new google.visualization.Timeline(container);
+    var dataTable = new google.visualization.DataTable();
+
+    dataTable.addColumn({ type: 'string', id: 'person' });
+    dataTable.addColumn({ type: 'string', id: 'dummy bar label' });
+    dataTable.addColumn({ type: 'string', id: 'style', role: 'style' });
+    dataTable.addColumn({ type: 'string', role: 'tooltip', 'p': {'html': true}});
+    dataTable.addColumn({ type: 'date', id: 'start' });
+    dataTable.addColumn({ type: 'date', id: 'end' });
+    dataTable.addRows([
+        {% for ev in ev_js %}
+        [ "{{ ev['username'] }}",  "", {{ev['style'] | safe}},
+            {% if ev['tooltip'] %} 
+            `<div class="tooltip">
+                <p><b>duration: {{ev['duration']}}</b></p>
+                <p style="white-space:nowrap; font-weight:bold">{{ev['start']}} - {{ev['end']}}</p>
+                <p style="white-space:pre-wrap">{{ev['desc']}} <span hidden style="">​</span></p>
+            </div>`
+            {% else %}
+            ""
+            {% endif %}, {{ev['start_js']}},{{ev['end_js']}} ],
+        {% endfor %}
+        ]);
+
+    var dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    var dayEnd = new Date(dayStart)
+    dayEnd.setDate(dayEnd.getDate() + 1)
+    {% if sel == 'week' %}
+    dayStart.setDate(dayStart.getDate() - 6)
+    {% elif sel == 'month' %}
+    dayStart.setDate(dayStart.getDate() - 29)
+    {% elif sel == 'all' %}
+    dayStart = {{group.get_time_js_form()}};
+    {% endif %}
+
+    var options = {
+        backgroundColor: '#212121',
+        colors: ['#f44336'],
+        tooltip: {
+            isHtml: true
+        },
+        hAxis: {
+            minValue: dayStart,
+            maxValue: dayEnd,
+            format: 'M/d\nHH:mm'
+        },
+        timeline: {
+            rowLabelStyle: {
+                color: 'white'
+            }
+        }
+    };
+
+    chart.draw(dataTable, options);
+}
+$(window).resize(function(){
+  drawActivityLog();
+});
+</script>
+

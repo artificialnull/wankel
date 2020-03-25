@@ -3,7 +3,7 @@ from flask import Flask
 from flask import request
 from flask import g
 from flask import session
-from flask import render_template, url_for
+from flask import render_template, url_for, redirect
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 import datetime
@@ -51,25 +51,39 @@ class Event(Base):
         td = self.end_time - self.start_time
         return ':'.join(str(td).split(':')[:2])
 
+    @property
+    def duration(self):
+        return self.end_time - self.start_time
+
     def get_time_js_form(dt):
         ts = dt.strftime("new Date(%Y, %%s, %d, %H, %M, 0)")
         return (ts % str(dt.month - 1))
 
-    def create_tooltip(self):
-        return ('''
-            "<div class=\\"tooltip\\"><p><b>duration: %s</b></p><p>%s - %s</p><p>%s</p></div>"
-        ''' % (self.get_duration(), self.get_start_time(), self.get_end_time(), self.text))
+    def get_safe_description(self):
+        txt = self.text.strip()
+        return txt if len(txt) > 0 else '(no description provided)'
 
-    def get_js_form(self):
-        return ','.join(['"' + self.user.username + '"', '""', '', self.create_tooltip(),
-            Event.get_time_js_form(self.start_time),
-            Event.get_time_js_form(self.end_time)])
+    def get_dict_form(self):
+        return {
+                'username': self.user.username,
+                'style': '""',
+                'tooltip': True,
+                'duration': self.get_duration(),
+                'start': self.get_start_time(),
+                'end': self.get_end_time(),
+                'desc': self.get_safe_description(),
+                'start_js': Event.get_time_js_form(self.start_time),
+                'end_js':   Event.get_time_js_form(self.end_time)
+                }
 
     @staticmethod
     def get_empty_today_event(user):
-        return ','.join(['"' + user.username + '"', '""', '"opacity: 0;"', '""',
-            Event.get_time_js_form(get_start_of_day()),
-            Event.get_time_js_form(get_start_of_day())])
+        return {
+                'username': user.username,
+                'style': '"opacity: 0;"',
+                'start_js': Event.get_time_js_form(get_start_of_day() + datetime.timedelta(days=1)),
+                'end_js': Event.get_time_js_form(get_start_of_day() + datetime.timedelta(days=1))
+                }
 
 class Group(Base):
     name = CharField()
@@ -78,6 +92,10 @@ class Group(Base):
     members = ManyToManyField(User, backref='groups')
     admin = ForeignKeyField(User, backref='administrating')
     start_date = DateTimeField(default=datetime.datetime.now)
+
+    def get_time_js_form(self):
+        ts = self.start_date.strftime("new Date(%Y, %%s, %d, %H, %M, 0)")
+        return (ts % str(self.start_date.month - 1))
 
 
 @app.before_request
@@ -93,6 +111,9 @@ def after_request(response):
 def get_start_of_day():
     return datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
+def permission_error():
+    return render_template('error.html', message="you can't see that")
+
 @app.route('/')
 @flask_login.login_required
 def main():
@@ -103,32 +124,36 @@ def main():
 
     return render_template('index.html',
             events = flask_login.current_user.get_sorted_events()[:5],
-            log_events = [e.get_js_form() for e in ev],
-            groups = flask_login.current_user.groups
+            show_remove = True,
+            show_more = True,
+            ev_js = list([e.get_dict_form() for e in ev]) +
+                [Event.get_empty_today_event(flask_login.current_user)],
+            groups = flask_login.current_user.groups,
+            sel = 'day'
             )
 
 @app.route('/welcome')
 def welcome():
     return render_template('welcome.html')
 
-@app.route('/events/<username>')
+@app.route('/user/<username>')
 @flask_login.login_required
 def render_events(username):
     user = load_user(username)
-
     show_remove = False
     try:
         show_remove = (user.username == flask_login.current_user.username)
     except:
         pass
-
     intersect = [ group for group in user.groups if group in flask_login.current_user.groups ]
     if len(intersect) > 0 or show_remove:
-        return render_template('more-events.html',
+        return render_template('user.html',
                 username = user.username,
                 events = user.get_sorted_events(),
+                ev_js = [e.get_dict_form() for e in user.get_sorted_events()] +
+                    [Event.get_empty_today_event(user)],
                 show_remove = show_remove)
-    return render_template('perm-error.html')
+    return permission_error()
 
 @app.route('/groups')
 def render_groups():
@@ -138,11 +163,11 @@ def render_groups():
             lambda x: flask_login.current_user._get_current_object() not in x.members,
             all_groups))
     print([x.name for x in groups])
-
     return render_template('groups.html',
             groups = groups,
             is_a_user = is_a_user
             )
+
 @app.route('/group/<int:group_id>')
 @flask_login.login_required
 def render_specific_group_without_hist_length(group_id):
@@ -158,22 +183,31 @@ def render_specific_group(group_id, hist_length):
             'week': get_start_of_day() - datetime.timedelta(days=6),
             'month': get_start_of_day() - datetime.timedelta(days=29)
             }
-
     if flask_login.current_user._get_current_object() not in group.members:
-        return render_template('perm-error.html')
-    all_events = []
+        return permission_error()
+    all_js_events = []
+    event_stats = {}
     for user in group.members:
         ev = Event.select().where(
                 (Event.user == user) &
                 (Event.end_time > hist_map.get(hist_length, hist_map.get('all'))) &
                 (Event.start_time > group.start_date)
                 )
-        all_events += list([e.get_js_form() for e in ev])
-        all_events.append(Event.get_empty_today_event(user))
-    return render_template('specific-group.html', group=group, events=all_events,
-            sel = (hist_length if hist_length in hist_map.keys() else 'all')
+        ue = [e.get_dict_form() for e in list(ev)]
+        all_js_events += ue
+        all_js_events.append(Event.get_empty_today_event(user))
+        event_stats[user.id] = {
+                'count': len(ev),
+                'total_duration': sum([e.duration for e in ev], datetime.timedelta(seconds=0)),
+                'avg_duration': sum([e.duration for e in ev], datetime.timedelta(seconds=0)) / max(1, len(ev))
+                }
+    return render_template('group.html', group=group, ev_js=all_js_events, event_stats=event_stats,
+            sel = (hist_length if hist_length in hist_map.keys() else 'all'),
+            sorted_members = list(reversed(sorted(list(group.members), key = lambda x: (
+                event_stats[x.id]['count'],
+                event_stats[x.id]['total_duration'])
+                )))
             )
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -194,6 +228,12 @@ def create_user(uname, pword):
         return authenticate_user(uname, pword)
     except:
         return False
+
+@app.route('/logout')
+@flask_login.login_required
+def logout():
+    flask_login.logout_user()
+    return redirect('/')
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -218,7 +258,7 @@ def create_event():
     return json.dumps({'success': make_new_event(
         create_json.get('start'),
         create_json.get('end'),
-        create_json.get('description')
+        create_json.get('description', '')
         )})
 
 @app.route('/remove-event', methods=['POST'])
@@ -243,6 +283,9 @@ def make_new_event(start_str, end_str, description):
             s_time -= datetime.timedelta(days=1)
 
         user = flask_login.current_user._get_current_object()
+        for event in user.events:
+            if event.start_time < e_time and s_time < event.end_time:
+                return False
         event = Event(
                 start_time = s_time,
                 end_time = e_time,
@@ -272,6 +315,7 @@ def create_group():
     succeeded = False
     try:
         if create_json.get('name') and create_json.get('pass'):
+            print(create_json)
             group = Group(
                     name = create_json.get('name'),
                     description = create_json.get('description', ''),
@@ -287,17 +331,43 @@ def create_group():
 @app.route('/join-group', methods=['POST'])
 @flask_login.login_required
 def join_group():
-    create_json = request.get_json()
+    join_json = request.get_json()
     succeeded = False
     try:
-        if create_json.get('group_name') and create_json.get('group_pass'):
-            group = Group.get(Group.name == create_json.get('group_name'))
-            if bcrypt.check_password_hash(group.password, create_json.get('group_pass')):
+        if len(flask_login.current_user.administrating) >= 5:
+            pass
+        elif join_json.get('group_name') and join_json.get('group_pass'):
+            group = Group.get(Group.name == join_json.get('group_name'))
+            if flask_login.current_user._get_current_object() in group.members:
+                pass
+            elif bcrypt.check_password_hash(group.password, join_json.get('group_pass')):
                 group.members.add(flask_login.current_user._get_current_object())
                 succeeded = True
     except:
         pass
     return json.dumps({'success': succeeded})
+
+@app.route('/leave-group', methods=['POST'])
+@flask_login.login_required
+def leave_group():
+    leave_json = request.get_json()
+    succeeded = False
+    try:
+        group = Group.get(Group.name == leave_json.get('name'))
+        if flask_login.current_user._get_current_object() in group.members:
+            group.members.remove(flask_login.current_user._get_current_object())
+            succeeded = True
+    except KeyboardInterrupt:
+        pass
+    return json.dumps({'success': succeeded})
+
+
+@app.errorhandler(500)
+def five_hundred(e):
+    return render_template('error.html', message="internal server error"), 500
+@app.errorhandler(404)
+def four_oh_four(e):
+    return render_template('error.html', message="page not found"), 404
 
 if __name__ == '__main__':
     with db:

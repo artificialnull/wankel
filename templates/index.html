@@ -1,139 +1,9 @@
 <html>
-    <head>
-        <title>wankel</title>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-        <script type="text/javascript">
-google.charts.load('current', {'packages':['timeline']});
-google.charts.setOnLoadCallback(drawChart);
-function drawChart() {
-    var container = document.getElementById('timeline');
-    var chart = new google.visualization.Timeline(container);
-    var dataTable = new google.visualization.DataTable();
-
-    dataTable.addColumn({ type: 'string', id: 'person' });
-    dataTable.addColumn({ type: 'string', id: 'dummy bar label' });
-    dataTable.addColumn({ type: 'string', id: 'style', role: 'style' });
-    dataTable.addColumn({ type: 'string', role: 'tooltip', 'p': {'html': true}});
-    dataTable.addColumn({ type: 'date', id: 'start' });
-    dataTable.addColumn({ type: 'date', id: 'end' });
-    dataTable.addRows([
-        {% for ev in log_events %}
-        [ {{ ev | safe }} ],
-        {% endfor %}
-        ]);
-
-    var dayStart = new Date();
-    dayStart.setHours(0, 0, 0, 0);
-    var dayEnd = new Date(dayStart)
-    dayEnd.setDate(dayEnd.getDate() + 1)
-
-    var options = {
-        backgroundColor: '#212121',
-        colors: ['#f44336'],
-        height: 100,
-        tooltip: {
-            isHtml: true
-        },
-        hAxis: {
-            minValue: dayStart,
-            maxValue: dayEnd,
-            format: 'HH:mm'
-        },
-        timeline: {
-            rowLabelStyle: {
-                color: 'white'
-            }
-        }
-    };
-
-    chart.draw(dataTable, options);
-}
-        </script>
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-        <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/materialize.css') }}" media="screen,projection"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<style>
-/* label focus color */
-.input-field input:focus + label {
-    color: #f44336 !important;
-}
- /* label underline focus color */
-.row .input-field input:focus {
-    border-bottom: 1px solid #f44336 !important;
-    box-shadow: 0 1px 0 0 #f44336 !important
-}
-.timepicker-digital-display {
-    background-color: #f44336 !important;
-}
-
-.timepicker-canvas-bearing {
-    fill: #f44336 !important;
-}
-.timepicker-canvas-bg {
-    fill: #f44336 !important;
-}
-.timepicker-canvas line {
-    stroke: #f44336 !important;
-}
-.timepicker-tick:hover {
-    background: #f44336 !important;
-    opacity: 50%;
-}
-
-.row {
-    margin-bottom: inherit !important;
-}
-
-.collection {
-    margin-bottom: inherit !important;
-    border: 1px solid #f44336 !important;
-}
-
-.timepicker-close {
-    color: #f44336 !important;
-}
-
-textarea.materialize-textarea:focus {
-    border-bottom: 1px solid #f44336 !important;
-    box-shadow: 0 1px 0 0 #f44336 !important;
-}
-
-.input-field textarea:focus + label {
-    color: #f44336 !important;
-}
-
-.collection-item {
-    background-color: black;
-    border-bottom: 1px solid #f44336 !important;
-}
-
-.collection .collection-item:last-child {
-    border-bottom: none !important;
-}
-
-.btn-large:hover {
-    background-color: inherit !important;
-}
-
-#timeline > div > div:nth-child(1) > div > svg > g:nth-child(3) > text {
-    fill: white !important;
-}
-
-#timeline > div > div:nth-child(1) > div > svg > g:nth-child(2) > rect {
-    display: none !important;
-}
-
-.tooltip {
-    background-color: black;
-    color: white;
-    padding: 1em;
-    display: inline-block;
-    white-space: nowrap;
-}
-</style>
-    </head>
+    {% include 'modules/header.html' %}
     <body class="black white-text">
+        <div class="top-backnav">
+            <a class="red-text" href="/logout">log out</a>
+        </div>
         <div class="container">
 
             <div class="row">
@@ -168,62 +38,19 @@ textarea.materialize-textarea:focus {
                     </div>
                 </div>
                 <div class="col s12 l6">
-                    <div class="card grey darken-4">
-                        <div class="card-content">
-                            <span class="card-title">recent events</span>
-
-                            {% if events|length %}
-                            <table class="highlight">
-                                <thead>
-                                    <tr class="red-text">
-                                        <th>start</th>
-                                        <th>duration</th>
-                                        <th>end</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for event in events %}
-                                    <tr>
-                                        <td> {{ event.get_start_time() }} </td>
-                                        <td> {{ event.get_duration()   }} </td>
-                                        <td> {{ event.get_end_time()   }} </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                            {% else %}
-                            <p style="padding-top: 1em">no recent events</p>
-                            {% endif %}
-                        </div>
-
-                        <div class="card-action">
-                            <a href="/events/{{ current_user.username }}" class="red-text">more</a>
-                        </div>
-                    </div>
-                 </div>
+                    {% include 'modules/event-table.html' %}
+                </div>
             </div>
             <div class="row">
                 <div class="col s12">
-                    <div class="card grey darken-4">
-                        <div class="card-content">
-                            <span class="card-title">your activity today</span>
-                            {% if log_events|length %}
-                            <div class="row"></div>
-                            <div class="row">
-                                <div id="timeline" class="col s12" style="height: 70px"></div>
-                            </div>
-                            {% else %}
-                            <p style="padding-top: 1em">no recent events</p>
-                            {% endif %}
-                        </div>
-                    </div>
+                    {% include "modules/activity-log.html" %}
                 </div>
             </div>
             <div class="row">
                 <div class="col s12">
                     <div class="card grey darken-4">
                         <div class="card-content">
-                            <span class="card-title">your groups</span>
+                            <span class="card-title">groups</span>
                             {% if groups|length %}
                             <div class="row">
                                 <div class="col s12">

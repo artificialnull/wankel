@@ -1,0 +1,62 @@
+<div class="card grey darken-4">
+    <div class="card-content">
+        <span class="card-title">count chart</span>
+        <div class="row" style="margin-bottom: 0px !important">
+            <div id="count-pie" style="width: 100%"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.google-visualization-tooltip {
+    pointer-events: none;
+}
+</style>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+console.log($('count-pie').width());
+
+
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawCountChart);
+function drawCountChart() {
+    $('#count-pie').height(Math.floor($('#count-pie').width() * 3/5))
+    var all_event_users = {};
+    {% for ev in ev_js %}
+    if ("{{ev['username']}}" in all_event_users) {
+        all_event_users["{{ev['username']}}"]++;
+    } else {
+        all_event_users["{{ev['username']}}"] = 0;
+    }
+    {% endfor %}
+    console.log(all_event_users);
+    var dt=Object.entries(all_event_users);
+    dt.unshift(['member', 'event count']);
+
+    var data = google.visualization.arrayToDataTable(dt);
+    var chart = new google.visualization.PieChart(document.getElementById('count-pie'));
+    var options = {
+        backgroundColor: '#212121',
+        chartArea: {
+            left: '10%',
+            top: '5%',
+            width: '80%',
+            height: '90%'
+        },
+        legend: {
+            position: 'none',
+            textStyle: {
+                color: 'white'
+            },
+            tooltip: {
+                isHtml: true
+            }
+        }
+    };
+    chart.draw(data, options);
+}
+$(window).resize(function(){
+    drawCountChart();
+});
+</script>

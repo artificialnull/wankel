@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row"><h2 class="center-align red-text">stats for <span class="white-text">{{group.name}}</span></h2></div>
+
+<div class="row center-align"><a class="waves-effect waves-light btn red white-text center-align" id="leave-group"
+        style="margin-bottom: 20px !important">
+        <i class="material-icons left">cancel</i>leave</a>
+</div>
+<script>
+$('#leave-group').click(function () {
+    $.ajax({
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        url: '/leave-group',
+        data: JSON.stringify({name: "{{group.name}}"}),
+        success: function (data) {
+            console.log(data);
+            if (data.success) {
+                window.location.href = window.location.origin + '/';
+            }
+        },
+        dataType: "json"
+    });
+});
+</script>
+
+<div class="row"><div class="col s12 center-align">
+        <a class="{%if sel == 'all'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/all">all</a>
+        <a class="{%if sel == 'day'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/day">day</a>
+        <a class="{%if sel == 'week'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/week">week</a>
+        <a class="{%if sel == 'month'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/month">month</a>
+    </div>
+</div>
+<div class="row">
+    <div class="col s12">
+        {% include "modules/activity-log.html" %}
+    </div>
+</div>
+<div class="row">
+    <div class="col s12">
+        {% include "modules/histogram.html" %}
+    </div>
+</div>
+<div class="row">
+    <div class="col xl6 s12">
+        {% include "modules/count-pie.html" %}
+    </div>
+    <div class="col xl6 s12">
+        {% include "modules/duration-pie.html" %}
+    </div>
+</div>
+<div class="row">
+    <div class="col s12">
+        <div class="card grey darken-4">
+            <div class="card-content">
+                <span class="card-title">member stats</span>
+                <table class="responsive-table">
+                    <thead>
+                        <tr class="red-text">
+                            <th>name</th>
+                            <th>total events</th>
+                            <th>total duration</th>
+                            <th>avg duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in sorted_members %}
+                        <tr>
+                            <td>{{user.username}}</td>
+                            <td>{{event_stats[user.id]['count']}}</td>
+                            <td>{{event_stats[user.id]['total_duration']}}</td>
+                            <td>{{event_stats[user.id]['avg_duration']}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -21,7 +21,7 @@ $('#submit').click(function () {
         success: function (data) {
             console.log(data);
             if (data.success) {
-                window.location.href = "http://kamat.xyz:5000" + (params.next == undefined ? '' : unescape(params.next));
+                window.location.href = window.location.origin + (params.next == undefined ? '' : unescape(params.next));
             }
         },
         dataType: "json"
