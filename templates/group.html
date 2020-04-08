@@ -7,6 +7,24 @@
         style="margin-bottom: 20px !important">
         <i class="material-icons left">cancel</i>leave</a>
 </div>
+<div class="row">
+    <div class="col s12 m8 push-m2 center-align">
+        <a class="{%if sel == 'all'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light s2" href="/group/{{group.id}}/all">all</a>
+        <a class="{%if sel == 'day'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light s2" href="/group/{{group.id}}/day">day</a>
+        <a class="{%if sel == 'week'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light s2" href="/group/{{group.id}}/week">week</a>
+        <a class="{%if sel == 'month'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light s2" href="/group/{{group.id}}/month">month</a>
+    </div>
+    {% if sel != 'all' %}
+    <div class="col s6 m2 pull-m8 right-align">
+        <a class="white-text btn-flat waves-effect waves-light" id="timestep-back">
+            <i class="material-icons center">arrow_back</i></a>
+    </div>
+    <div class="col s6 m2 left-align">
+        <a class="white-text btn-flat waves-effect waves-light" id="timestep-forw">
+            <i class="material-icons center">arrow_forward</i></a>
+    </div>
+    {% endif %}
+</div>
 <script>
 $('#leave-group').click(function () {
     $.ajax({
@@ -23,16 +41,23 @@ $('#leave-group').click(function () {
         dataType: "json"
     });
 });
-</script>
-
-<div class="row"><div class="col s12 center-align">
-        <a class="{%if sel == 'all'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/all">all</a>
-        <a class="{%if sel == 'day'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/day">day</a>
-        <a class="{%if sel == 'week'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/week">week</a>
-        <a class="{%if sel == 'month'%}white-text{%else%}red-text{%endif%} btn-flat waves-effect waves-light" href="/group/{{group.id}}/month">month</a>
-    </div>
-</div>
-<div class="row">
+function adjustTimeOffset(adj) {
+    params={};location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){params[k]=v});
+    offset = adj;
+    if (params.hasOwnProperty('offset')) {
+        offset += parseInt(params.offset);
+    }
+    console.log(adj);
+    if (offset > 0) { offset = 0; }
+    window.location.href = window.location.href.split('?')[0] + '?offset=' + offset;
+}
+$('#timestep-back').click(function () {
+    adjustTimeOffset(-1);
+});
+$('#timestep-forw').click(function () {
+    adjustTimeOffset(1);
+});
+</script><div class="row">
     <div class="col s12">
         {% include "modules/activity-log.html" %}
     </div>
@@ -52,6 +77,11 @@ $('#leave-group').click(function () {
 </div>
 <div class="row">
     <div class="col s12">
+        {% include "modules/no-event-callout.html" %}
+    </div>
+</div>
+<div class="row">
+    <div class="col s12">
         <div class="card grey darken-4">
             <div class="card-content">
                 <span class="card-title">member stats</span>
@@ -67,12 +97,18 @@ $('#leave-group').click(function () {
                     <tbody>
                         {% for user in sorted_members %}
                         <tr>
-                            <td>{{user.username}}</td>
+                            <td><a href="/user/{{user.username}}" class="white-text">{{user.username}}</a></td>
                             <td>{{event_stats[user.id]['count']}}</td>
                             <td>{{event_stats[user.id]['total_duration']}}</td>
                             <td>{{event_stats[user.id]['avg_duration']}}</td>
                         </tr>
                         {% endfor %}
+                        <tr class="red-text">
+                            <td>total</td>
+                            <td>{{event_stats[-1]['count']}}</td>
+                            <td>{{event_stats[-1]['total_duration']}}</td>
+                            <td>{{event_stats[-1]['avg_duration']}}</td>
+                        </tr>
                     </tbody>
                 </table>
                 </div>

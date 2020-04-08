@@ -47,7 +47,7 @@ function drawActivityLog() {
             `<div class="tooltip">
                 <p><b>duration: {{ev['duration']}}</b></p>
                 <p style="white-space:nowrap; font-weight:bold">{{ev['start']}} - {{ev['end']}}</p>
-                <p style="white-space:pre-wrap">{{ev['desc']}} <span hidden style="">​</span></p>
+                <p style="white-space:pre-wrap">${"{{ev['desc']}}"} <span hidden style="">​</span></p>
             </div>`
             {% else %}
             ""
@@ -59,15 +59,17 @@ function drawActivityLog() {
     dayStart.setHours(0, 0, 0, 0);
     var dayEnd = new Date(dayStart)
     dayEnd.setDate(dayEnd.getDate() + 1)
-    {% if sel == 'week' %}
-    dayStart.setDate(dayStart.getDate() - 6)
-    {% elif sel == 'month' %}
-    dayStart.setDate(dayStart.getDate() - 29)
-    {% elif sel == 'all' %}
+    {% if sel == 'all' %}
     dayStart = {{group.get_time_js_form()}};
     {% endif %}
 
+    {% if time_range is defined %}
+    dayStart = {{time_range['start_js']}};
+    dayEnd = {{time_range['end_js']}};
+    {% endif %}
+
     var options = {
+        avoidOverlappingGridLines: false,
         backgroundColor: '#212121',
         colors: ['#f44336'],
         tooltip: {

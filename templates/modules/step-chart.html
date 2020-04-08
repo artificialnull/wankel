@@ -55,7 +55,6 @@ function drawHistogram() {
             dh[t.getHours() * 60 + t.getMinutes()]++;
         }
     }
-    console.log(dh);
     var hourCounts = new Array(24).fill(0);
     for (var i = 0; i < dayLength; i++) {
         hourCounts[Math.floor(i/60)] += dh[i];

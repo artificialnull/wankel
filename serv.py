@@ -55,12 +55,14 @@ class Event(Base):
     def duration(self):
         return self.end_time - self.start_time
 
+    @staticmethod
     def get_time_js_form(dt):
         ts = dt.strftime("new Date(%Y, %%s, %d, %H, %M, 0)")
         return (ts % str(dt.month - 1))
 
     def get_safe_description(self):
         txt = self.text.strip()
+        txt = txt.replace('\n', ' ')
         return txt if len(txt) > 0 else '(no description provided)'
 
     def get_dict_form(self):
@@ -77,12 +79,14 @@ class Event(Base):
                 }
 
     @staticmethod
-    def get_empty_today_event(user):
+    def get_empty_today_event(user, dt=None):
         return {
                 'username': user.username,
                 'style': '"opacity: 0;"',
-                'start_js': Event.get_time_js_form(get_start_of_day() + datetime.timedelta(days=1)),
-                'end_js': Event.get_time_js_form(get_start_of_day() + datetime.timedelta(days=1))
+                'start_js': Event.get_time_js_form(
+                    (get_start_of_day() + datetime.timedelta(days=1)) if dt==None else dt),
+                'end_js': Event.get_time_js_form(
+                    (get_start_of_day() + datetime.timedelta(days=1)) if dt==None else dt)
                 }
 
 class Group(Base):
@@ -177,36 +181,68 @@ def render_specific_group_without_hist_length(group_id):
 @flask_login.login_required
 def render_specific_group(group_id, hist_length):
     group = Group.get(Group.id == group_id)
+
+    offset = int(request.args.get('offset', 0))
+
     hist_map = {
-            'all': group.start_date,
-            'day': get_start_of_day(),
-            'week': get_start_of_day() - datetime.timedelta(days=6),
-            'month': get_start_of_day() - datetime.timedelta(days=29)
+            'all': [
+                group.start_date,
+                get_start_of_day() + datetime.timedelta(days=1)
+                ],
+            'day': [
+                get_start_of_day() + datetime.timedelta(days=offset),
+                get_start_of_day() + datetime.timedelta(days=offset + 1)
+                ],
+            'week': [
+                get_start_of_day() + datetime.timedelta(days=offset * 7 - 6),
+                get_start_of_day() + datetime.timedelta(days=offset * 7 + 1)
+                ],
+            'month': [
+                get_start_of_day() + datetime.timedelta(days=offset * 30 - 29),
+                get_start_of_day() + datetime.timedelta(days=offset * 30 + 1),
+                ]
             }
     if flask_login.current_user._get_current_object() not in group.members:
         return permission_error()
     all_js_events = []
     event_stats = {}
+    totals = {
+            'count': 0,
+            'total_duration': datetime.timedelta(days=0)
+            }
     for user in group.members:
         ev = Event.select().where(
                 (Event.user == user) &
-                (Event.end_time > hist_map.get(hist_length, hist_map.get('all'))) &
+                (Event.end_time > hist_map.get(hist_length, hist_map.get('all'))[0]) &
+                (Event.end_time < hist_map.get(hist_length, hist_map.get('all'))[1]) &
                 (Event.start_time > group.start_date)
                 )
         ue = [e.get_dict_form() for e in list(ev)]
         all_js_events += ue
-        all_js_events.append(Event.get_empty_today_event(user))
+        all_js_events.append(Event.get_empty_today_event(user,
+            hist_map.get(hist_length, hist_map.get('all'))[1]))
         event_stats[user.id] = {
                 'count': len(ev),
                 'total_duration': sum([e.duration for e in ev], datetime.timedelta(seconds=0)),
-                'avg_duration': sum([e.duration for e in ev], datetime.timedelta(seconds=0)) / max(1, len(ev))
+                'avg_duration': str(
+                    sum([e.duration for e in ev], datetime.timedelta(seconds=0)) / max(1, len(ev))
+                    ).split('.')[0]
                 }
+        totals['count'] += event_stats[user.id]['count']
+        totals['total_duration'] += event_stats[user.id]['total_duration']
+    totals['avg_duration'] = str(totals['total_duration'] / max(1, totals['count'])).split('.')[0]
+    event_stats[-1] = totals
+
     return render_template('group.html', group=group, ev_js=all_js_events, event_stats=event_stats,
             sel = (hist_length if hist_length in hist_map.keys() else 'all'),
             sorted_members = list(reversed(sorted(list(group.members), key = lambda x: (
                 event_stats[x.id]['count'],
                 event_stats[x.id]['total_duration'])
-                )))
+                ))),
+            time_range = {
+                'start_js': Event.get_time_js_form(hist_map.get(hist_length, hist_map.get('all'))[0]),
+                'end_js': Event.get_time_js_form(hist_map.get(hist_length, hist_map.get('all'))[1])
+                }
             )
 
 @login_manager.user_loader
@@ -279,8 +315,11 @@ def make_new_event(start_str, end_str, description):
         s_time = timestr_to_datetime(start_str)
         e_time = timestr_to_datetime(end_str)
 
-        if s_time > e_time:
+        if s_time > datetime.datetime.now():
             s_time -= datetime.timedelta(days=1)
+
+        if e_time > datetime.datetime.now():
+            e_time -= datetime.timedelta(days=1)
 
         user = flask_login.current_user._get_current_object()
         for event in user.events:

@@ -7,7 +7,33 @@
         <div class="container">
 
             <div class="row">
-                <h2 class="center-align red-text">hey there <span class="white-text">{{ current_user.username }}</span></h2>
+                {% set greeter_list = [
+                    'howdy',
+                    'hey there',
+                    'wassup',
+                    'hello there',
+                    'hi',
+                    'welcome home',
+                    '\'lo',
+                    'hullo',
+                    'greetings',
+                    'nice to see you',
+                    'hola',
+                    'namaste',
+                    'i\'m watching you',
+                    'shalom',
+                    'aloha',
+                    'salutations',
+                    'you like that, don\'t you',
+                    'keep it up',
+                    'back again?'
+                    ] %}
+                    <h2 class="center-align red-text">
+                        {% if events|length %}
+                            {{greeter_list | random}}
+                        {% else %}
+                            welcome
+                        {% endif %} <span class="white-text">{{ current_user.username }}</span></h2>
             </div>
 
             <div class="row">
