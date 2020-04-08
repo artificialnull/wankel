@@ -1,10 +1,10 @@
 <div class="card grey darken-4">
     <div class="card-content">
-        <span class="card-title">longest no event streak</span>
-        <div class="row" style="margin-top: 20px">
-            <p id="no-event-streak-holder" class="col s6"></p>
-            <p id="no-event-streak-length" class="col s6 right-align"></p>
-        </div>
+        <span class="card-title">no event streaks</span>
+        <table class="responsive-table" id="losers-table">
+            <tbody>
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -21,24 +21,29 @@ if ({{ev['end_js']}} < new Date()) {
     }
 }
 {% endfor %}
-var earliestName = "";
-var earliestDate = new Date();
-for (var key of Object.keys(latests)) {
-    if (latests[key] < earliestDate) {
-        earliestName = key;
-        earliestDate = latests[key];
-    }
+var earliestNames = Object.keys(latests);
+var earliestDates = Object.values(latests);
+
+earliestNames.sort( function (x, y) { return latests[x] - latests[y] });
+earliestDates.sort( function (x, y) { return x - y });
+console.log(earliestNames);
+console.log(earliestDates);
+
+for (var i = 0; i < earliestNames.length; i++) {
+    var length = parseInt(Math.floor((new Date() - earliestDates[i]) / 60000));
+    var minutes = length % 60;
+    var hours = parseInt(Math.floor(length / 60));
+
+    var desat = i / earliestNames.length;
+
+    var color = `hsl(4, 90%, ${58 + 42.0 * desat}%)`;
+
+    $('#losers-table > tbody:last-child').append(`
+        <tr>
+            <td><span style="color: ${color}">${earliestNames[i]}</span></td>
+            <td style="text-align: right"><span style="color: ${color}">${hours + ':' + minutes.toString().padStart(2, '0')}</span></td>
+        </tr>`);
 }
-console.log(earliestName);
-console.log(earliestDate);
-
-var length = parseInt(Math.floor((new Date() - earliestDate) / 60000));
-var minutes = length % 60;
-var hours = parseInt(Math.floor(length / 60));
-
-$('#no-event-streak-holder').html('<b class="red-text">' + earliestName + '</b>');
-$('#no-event-streak-length').html('<span class="red-text">' + hours + ':' + minutes.toString().padStart(2, '0') + '</span>');
-
 </script>
 
 

@@ -4,11 +4,13 @@ from flask import request
 from flask import g
 from flask import session
 from flask import render_template, url_for, redirect
+from flask import send_from_directory
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 import datetime
 import flask_login
 import json
+import os
 
 app = Flask(__name__)
 login_manager = LoginManager()
@@ -407,6 +409,11 @@ def five_hundred(e):
 @app.errorhandler(404)
 def four_oh_four(e):
     return render_template('error.html', message="page not found"), 404
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 if __name__ == '__main__':
     with db:
